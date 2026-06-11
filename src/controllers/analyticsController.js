@@ -23,6 +23,10 @@ const getAnalyticsSummaryHandler = async (req, res) => {
       },
     ]);
 
+    const reportedPhones = await Phone.find({ reports: { $gt: 0 } })
+      .sort({ reports: -1, riskScore: -1 })
+      .select('phone reports riskLevel riskScore trend lastReportedAt');
+
     return res.status(200).json({
       success: true,
       data: {
@@ -30,6 +34,7 @@ const getAnalyticsSummaryHandler = async (req, res) => {
         totalReports,
         criticalPhones,
         fraudTrends,
+        reportedPhones,
       },
     });
   } catch (error) {
