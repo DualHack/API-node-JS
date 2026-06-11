@@ -17,10 +17,10 @@ app.get('/', (req, res) => {
 });
 
 app.use((req, res) => {
-    res.status(404).json({
+   status(404).json({
         success: false,
         message: 'Route not found',
-    });
+    }); res.
 });
 
 app.use((err, req, res, next) => {
