@@ -42,6 +42,16 @@ Resposta de sucesso:
 {
   "success": true,
   "message": "AngoSec API root",
+  "routes": [
+    "GET /api/health",
+    "POST /api/reports",
+    "GET /api/phones/:phone",
+    "GET /api/phones/top/reported",
+    "GET /api/sync/phones",
+    "POST /api/sms/report",
+    "POST /api/ussd",
+    "GET /api/analytics/summary"
+  ]
 }
 ```
 
@@ -96,7 +106,9 @@ Resposta de sucesso (`201`):
     "reportId": "642d12f4a7d7b88f0c0e6a7d",
     "phone": "+244912345678",
     "reports": 1,
-    "riskLevel": "LOW"
+    "riskLevel": "LOW",
+    "riskScore": 18,
+    "aiInsight": "Número com perfil de risco baixo, monitorizado pelo sistema."
   }
 }
 ```
@@ -140,7 +152,11 @@ Resposta de sucesso (`200`):
   "data": {
     "phone": "+244912345678",
     "reports": 5,
-    "riskLevel": "MEDIUM"
+    "riskLevel": "MEDIUM",
+    "riskScore": 42,
+    "lastReportedAt": "2026-06-11T10:15:30.000Z",
+    "trend": "INCREASING",
+    "aiInsight": "Este número apresenta padrão suspeito devido ao aumento rápido de denúncias em curto período."
   }
 }
 ```
@@ -177,12 +193,20 @@ Resposta de sucesso (`200`):
     {
       "phone": "+244912345678",
       "reports": 25,
-      "riskLevel": "HIGH"
+      "riskLevel": "HIGH",
+      "riskScore": 82,
+      "trend": "INCREASING",
+      "lastReportedAt": "2026-06-11T10:15:30.000Z",
+      "aiInsight": "Detectado comportamento típico de fraude em massa com alta intensidade de denúncias."
     },
     {
       "phone": "+244923456789",
       "reports": 12,
-      "riskLevel": "HIGH"
+      "riskLevel": "HIGH",
+      "riskScore": 68,
+      "trend": "STABLE",
+      "lastReportedAt": "2026-06-10T14:22:10.000Z",
+      "aiInsight": "Número com atividade inconsistente e elevada taxa de denúncias."
     }
   ]
 }
@@ -190,20 +214,14 @@ Resposta de sucesso (`200`):
 
 ### `GET /api/sync/phones`
 
-Retorna uma lista leve de telefones para sincronização offline.
+Retorna uma lista leve de telefones para sincronização offline. Esta rota envia apenas números de risco elevado para o app mobile e inclui dados de risco e explicações.
 
 Uso previsto:
 
 - o app mobile chama esta rota regularmente quando há conexão
 - recebe a base de números perigosos atualizada
 - armazena localmente para consulta rápida sem estar online
-- usa `phone`, `reports` e `riskLevel` na lógica de bloqueio/alerta no app
-
-Essa rota cria um payload enxuto com:
-
-- `phone`
-- `reports`
-- `riskLevel`
+- usa `phone`, `reports`, `riskLevel`, `riskScore` e `aiInsight` na lógica de bloqueio/alerta
 
 Resposta de sucesso (`200`):
 
@@ -214,7 +232,11 @@ Resposta de sucesso (`200`):
     {
       "phone": "+244912345678",
       "reports": 25,
-      "riskLevel": "HIGH"
+      "riskLevel": "HIGH",
+      "riskScore": 82,
+      "trend": "INCREASING",
+      "lastReportedAt": "2026-06-11T10:15:30.000Z",
+      "aiInsight": "Detectado comportamento típico de fraude em massa com alta intensidade de denúncias."
     }
   ]
 }
@@ -227,6 +249,89 @@ Resposta de erro de servidor (`500`):
   "success": false,
   "message": "An error occurred while preparing sync data",
   "error": "..."
+}
+```
+
+### `POST /api/sms/report`
+
+Simula um SMS que denuncia um número. Se a mensagem contiver `DENUNCIAR <número>`, gera automaticamente a denúncia.
+
+Body:
+
+```json
+{
+  "phone": "+244912345678",
+  "message": "DENUNCIAR +244912345678"
+}
+```
+
+Resposta de sucesso (`201`):
+
+```json
+{
+  "success": true,
+  "data": {
+    "reportId": "642d12f4a7d7b88f0c0e6a7d",
+    "phone": "+244912345678",
+    "reports": 15,
+    "riskLevel": "HIGH",
+    "aiInsight": "Detectado comportamento típico de fraude em massa com alta intensidade de denúncias."
+  }
+}
+```
+
+### `POST /api/ussd`
+
+Simula um serviço USSD para verificar números ou denunciar diretamente.
+
+Body:
+
+```json
+{
+  "input": "DENUNCIAR +244912345678"
+}
+```
+
+Comandos suportados:
+
+- `VERIFICAR <número>` - retorna o nível de risco do número
+- `DENUNCIAR <número>` - cria uma nova denúncia
+- qualquer outro texto retorna o menu básico
+
+Resposta de exemplo:
+
+```json
+{
+  "success": true,
+  "message": "Este número é HIGH e detectado comportamento típico de fraude em massa com alta intensidade de denúncias.",
+  "data": {
+    "phone": "+244912345678",
+    "reports": 15,
+    "riskLevel": "HIGH",
+    "aiInsight": "Detectado comportamento típico de fraude em massa com alta intensidade de denúncias."
+  }
+}
+```
+
+### `GET /api/analytics/summary`
+
+Retorna um resumo de métricas de fraude e tendências do sistema.
+
+Resposta de sucesso (`200`):
+
+```json
+{
+  "success": true,
+  "data": {
+    "totalPhones": 120,
+    "totalReports": 489,
+    "criticalPhones": 8,
+    "fraudTrends": [
+      { "trend": "INCREASING", "count": 14 },
+      { "trend": "STABLE", "count": 92 },
+      { "trend": "DECREASING", "count": 14 }
+    ]
+  }
 }
 ```
 

@@ -19,6 +19,20 @@ const phoneSchema = new mongoose.Schema(
       enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
       default: 'LOW',
     },
+    riskScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    lastReportedAt: {
+      type: Date,
+    },
+    trend: {
+      type: String,
+      enum: ['INCREASING', 'STABLE', 'DECREASING'],
+      default: 'STABLE',
+    },
   },
   {
     timestamps: true,

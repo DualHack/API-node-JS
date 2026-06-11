@@ -20,6 +20,8 @@ const createReportHandler = async (req, res) => {
         phone: phoneInfo.phone,
         reports: phoneInfo.reports,
         riskLevel: phoneInfo.riskLevel,
+        riskScore: phoneInfo.riskScore,
+        aiInsight: phoneInfo.aiInsight,
       },
     });
   } catch (error) {
